@@ -1,0 +1,6 @@
+plaid-python
+google-cloud-bigquery
+google-cloud-secret-manager
+functions-framework
+requests
+python-dotenv
