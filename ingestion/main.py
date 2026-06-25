@@ -8,6 +8,7 @@ from plaid.api import plaid_api
 from plaid import ApiClient, Configuration
 from google.cloud import bigquery
 from google.cloud import secretmanager
+from plaid.model.transactions_sync_request import TransactionsSyncRequest
 
 load_dotenv()
 project_id=os.getenv("PROJECT_ID")
@@ -46,9 +47,26 @@ def handle_webhook(request):
 
 def get_access_token(item_id):
     plaid_item_map = secret_value_puller(secret_name="plaid-item-map")
-    plaid_item_map = plaid_item_map.json_loads()
+    plaid_item_map = json.loads(plaid_item_map)
     secret_name = plaid_item_map.get(item_id)
     access_token = secret_value_puller(secret_name=secret_name)
     return access_token
 
 def transactions_sync(item_id):
+    access_token = get_access_token(item_id=item_id)
+    client = get_plaid_client()
+    request = TransactionsSyncRequest(
+        access_token=access_token,
+    )
+    response = client.transactions_sync(request)
+    transactions = response['added']
+
+    while (response['has_more']):
+        request = TransactionsSyncRequest(
+            access_token = access_token,
+            cursor = response['next_cursor']
+        )
+        response = client.transactions_sync(request)
+        transactions += response['added']
+    
+    return transactions
