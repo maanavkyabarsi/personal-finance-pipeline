@@ -14,9 +14,10 @@ load_dotenv()
 project_id=os.getenv("PROJECT_ID")
 
 sm_client = secretmanager.SecretManagerServiceClient()
+bq_client = bigquery.Client()
 
 def secret_value_puller(secret_name: str):
-    name = "projects/" + f"{project_id}/" + "secrets/" + secret_name + "/versions/latest"
+    name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
     response = sm_client.access_secret_version(request={"name": name})
     payload = response.payload.data.decode("UTF-8")
     return payload
@@ -71,3 +72,5 @@ def transactions_sync(item_id):
         transactions += response['added']
     
     return transactions
+
+def write_to_bronze(transactions):
