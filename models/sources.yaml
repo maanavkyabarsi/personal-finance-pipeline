@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: airy-cogency-500504-q0
+    schema: bronze
+    tables:
+      - name: transactions
