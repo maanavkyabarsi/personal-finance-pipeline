@@ -1,0 +1,42 @@
+---
+# Welcome to your prefect.yaml file! You can use this file for
+# storing and managing configuration for deploying your flows.
+# We recommend committing this file to source control along
+# with your flow code.
+
+# Generic metadata about this project
+name: personal-finance-pipeline
+prefect-version: 3.7.6
+
+# build section allows you to manage and build docker images
+build: null
+
+# push section allows you to manage if and how this project
+# is uploaded to remote locations
+push: null
+
+# pull section allows you to provide instructions for cloning
+# this project in remote locations
+pull:
+- prefect.deployments.steps.git_clone:
+    repository: https://github.com/maanavkyabarsi/personal-finance-pipeline.git
+    branch: main
+
+# the deployments section allows you to provide configuration
+# for deploying flows
+deployments:
+- name: daily-finance-sync
+  version: null
+  tags: []
+  concurrency_limit: null
+  description: null
+  entrypoint: prefect/flow.py:daily_sync
+  parameters: {}
+  work_pool:
+    name: my-pool
+    work_queue_name: null
+    job_variables: {}
+  schedules:
+  - cron: 0 */6 * * *
+    timezone: null
+    day_or: true
