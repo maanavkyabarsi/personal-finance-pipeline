@@ -40,7 +40,8 @@ def run_dbt():
 
 @prefect.flow
 def daily_sync():
-    sa_key_json = Secret.load("gcp-sa-key").get()
+    sa_key = Secret.load("gcp-sa-key").get()
+    sa_key_json = json.dumps(sa_key) if isinstance(sa_key, dict) else sa_key
     tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
     tmp.write(sa_key_json)
     tmp.close()
