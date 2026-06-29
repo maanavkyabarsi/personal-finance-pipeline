@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 from dotenv import load_dotenv
+from prefect.blocks.system import Secret
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ingestion'))
 from main import *
 
@@ -39,12 +40,12 @@ def run_dbt():
 
 @prefect.flow
 def daily_sync():
-    sa_key_json = os.getenv("GCP_SA_KEY_JSON")
-    if sa_key_json:
-        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        tmp.write(sa_key_json)
-        tmp.close()
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = tmp.name
+    sa_key_json = Secret.load("gcp-sa-key").get()
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    tmp.write(sa_key_json)
+    tmp.close()
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = tmp.name
+    os.environ["GCP_SA_KEY_JSON"] = sa_key_json
 
     item_ids = fetch_item_ids()
     print(f"Fetched {len(item_ids)} accounts")
