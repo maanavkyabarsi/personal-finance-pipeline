@@ -13,8 +13,6 @@ from plaid.model.transactions_sync_request import TransactionsSyncRequest
 load_dotenv()
 project_id=os.getenv("PROJECT_ID")
 
-bq_client = bigquery.Client()
-
 def secret_value_puller(secret_name: str):
     sm_client = secretmanager.SecretManagerServiceClient(transport="rest")
     name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
@@ -93,6 +91,7 @@ def transactions_sync(item_id):
 def write_to_bronze(transactions):
     print(f"Writing {len(transactions)} transactions to bronze")
 
+    bq_client = bigquery.Client()
     table_id = f"{project_id}.bronze.transactions"
     rows_to_insert = [
         {
