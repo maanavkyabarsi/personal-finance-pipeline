@@ -94,10 +94,10 @@ export async function retrieve_transactions_primary_category_month(primary_categ
                 transaction_date,
                 pfc_primary
             FROM silver.transactions
-            WHERE pfc_primary = @primary_category AND DATE_TRUNC(transaction_date, MONTH) = @month_year
+            WHERE pfc_primary = @primary_category AND DATE_TRUNC(transaction_date, MONTH) = @month_year AND COALESCE(pfc_detailed, '') != 'LOAN_PAYMENTS_CREDIT_CARD_PAYMENT'
         `;
     
-       const options = {
+        const options = {
             query,
             location: 'US',
             params: { primary_category, month_year}
