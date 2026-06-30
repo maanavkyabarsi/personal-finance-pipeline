@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     else {
         return NextResponse.json(
             {error: 'Detailed category and/or month and year are not defined'},
-            {status: 500}
+            {status: 400}
         )
     }
 
