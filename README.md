@@ -7,7 +7,7 @@ Plaid webhook → Cloud Function → bronze.transactions (raw JSON)
   → dbt silver_transactions → dbt gold_spending_by_category
   → Next.js API routes → dashboard
 ```
-
+***LIVE DEMO:*** https://personal-finance-dashboard-live-dem.vercel.app/
 ---
 
 ## Table of Contents
