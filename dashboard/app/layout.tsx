@@ -1,24 +1,38 @@
 import type { Metadata } from "next";
-import { Fira_Sans, Fira_Code } from "next/font/google";
+import { Inter, Fraunces } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
-const firaSans = Fira_Sans({
-  variable: "--font-fira-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const firaCode = Fira_Code({
-  variable: "--font-fira-code",
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Spending Dashboard",
+  metadataBase: new URL(siteUrl),
+  title: "cents",
   description: "Analyze your expenditures, track budgets, and spot trends.",
+  openGraph: {
+    title: "cents",
+    description: "Analyze your expenditures, track budgets, and spot trends.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "cents",
+    description: "Analyze your expenditures, track budgets, and spot trends.",
+  },
 };
 
 // Set the theme class before paint to avoid a flash of the wrong theme.
@@ -41,13 +55,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${firaSans.variable} ${firaCode.variable} h-full`}
+      className={`${inter.variable} ${fraunces.variable} h-full`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
       <body className="min-h-dvh" suppressHydrationWarning>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
         {children}
       </body>
     </html>

@@ -47,6 +47,13 @@ export function currencyCents(n: number): string {
   return currencyFmtCents.format(n);
 }
 
+export function currencyParts(n: number): { main: string; cents: string } {
+  const full = currencyFmtCents.format(n);
+  const dot = full.lastIndexOf(".");
+  if (dot === -1) return { main: full, cents: "" };
+  return { main: full.slice(0, dot), cents: full.slice(dot) };
+}
+
 /** Compact form for axis labels: $1.2k, $980. */
 export function currencyCompact(n: number): string {
   const abs = Math.abs(n);

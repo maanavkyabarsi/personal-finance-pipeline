@@ -1,5 +1,33 @@
 import { bigquery, projectId } from '@/lib/bigquery'
 
+export const OVERALL_CATEGORY = '__OVERALL__'
+
+export async function retrieve_accounts() {
+    try {
+        const query = `
+            SELECT account_id, display_name, mask, type, subtype
+            FROM gold.accounts
+            ORDER BY display_name
+        `;
+
+        const options = {
+            query,
+            location: 'US',
+        };
+
+        const [job] = await bigquery.createQueryJob(options);
+        console.log(`Job ${job.id} started.`);
+
+        const [rows] = await job.getQueryResults();
+        return rows
+    }
+
+    catch (error: unknown) {
+        console.error('BigQuery error:', error);
+        throw error;
+    }
+}
+
 export async function gold_spending_by_category() {
     try {
         const query = `
@@ -49,8 +77,38 @@ export async function set_budget_limit(primary_category: string, budget_limit: n
 
         const [job] = await bigquery.createQueryJob(options);
         console.log(`Job ${job.id} started.`);
+        await job.getQueryResults();
         return {success: true}
 
+    }
+
+    catch (error: unknown) {
+        console.error('BigQuery error:', error);
+        throw error;
+    }
+}
+
+export async function retrieve_overall_budget() {
+    try {
+        const query = `
+            SELECT budget_limit
+            FROM gold.budget_limits
+            WHERE primary_category = @primary_category
+            ORDER BY updated_at DESC
+            LIMIT 1
+        `;
+
+        const options = {
+            query,
+            location: 'US',
+            params: { primary_category: OVERALL_CATEGORY }
+        };
+
+        const [job] = await bigquery.createQueryJob(options);
+        console.log(`Job ${job.id} started.`);
+
+        const [rows] = await job.getQueryResults();
+        return rows
     }
 
     catch (error: unknown) {
@@ -75,6 +133,7 @@ export async function update_budget_limit(primary_category: string, budget_limit
 
         const [job] = await bigquery.createQueryJob(options);
         console.log(`Job ${job.id} started.`);
+        await job.getQueryResults();
         return {success: true}
 
     }
@@ -85,8 +144,15 @@ export async function update_budget_limit(primary_category: string, budget_limit
     }
 }
 
-export async function retrieve_transactions_primary_category_month(primary_category: string, month_year: string) {
+export async function retrieve_transactions_primary_category_month(primary_category: string, month_year: string, account_id?: string | null) {
     try {
+        const params: Record<string, string> = { primary_category, month_year }
+        let accountFilter = ''
+        if (account_id) {
+            params.account_id = account_id
+            accountFilter = 'AND account_id = @account_id'
+        }
+
         const query = `
             SELECT
                 transaction_name,
@@ -95,17 +161,61 @@ export async function retrieve_transactions_primary_category_month(primary_categ
                 pfc_primary
             FROM silver.transactions
             WHERE pfc_primary = @primary_category AND DATE_TRUNC(transaction_date, MONTH) = @month_year AND COALESCE(pfc_detailed, '') != 'LOAN_PAYMENTS_CREDIT_CARD_PAYMENT'
+              ${accountFilter}
         `;
-    
+
         const options = {
             query,
             location: 'US',
-            params: { primary_category, month_year}
+            params
         };
 
         const [job] = await bigquery.createQueryJob(options);
         console.log(`Job ${job.id} started.`);
         
+        const [rows] = await job.getQueryResults();
+        return rows
+    }
+
+    catch (error: unknown) {
+        console.error('BigQuery error:', error);
+        throw error;
+    }
+}
+
+export async function retrieve_recent_transactions(month_year: string, account_id?: string | null) {
+    try {
+        const params: Record<string, string> = { month_year }
+        let accountFilter = ''
+        if (account_id) {
+            params.account_id = account_id
+            accountFilter = 'AND account_id = @account_id'
+        }
+
+        const query = `
+            SELECT
+                transaction_name,
+                merchant_name,
+                amount,
+                transaction_date,
+                pfc_primary
+            FROM silver.transactions
+            WHERE DATE_TRUNC(transaction_date, MONTH) = @month_year
+              AND COALESCE(pfc_detailed, '') != 'LOAN_PAYMENTS_CREDIT_CARD_PAYMENT'
+              ${accountFilter}
+            ORDER BY transaction_date DESC, transaction_id DESC
+            LIMIT 8
+        `;
+
+        const options = {
+            query,
+            location: 'US',
+            params
+        };
+
+        const [job] = await bigquery.createQueryJob(options);
+        console.log(`Job ${job.id} started.`);
+
         const [rows] = await job.getQueryResults();
         return rows
     }

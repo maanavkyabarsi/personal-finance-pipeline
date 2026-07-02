@@ -9,11 +9,11 @@ import {
   monthlyTotals,
 } from "@/lib/derive";
 import { num } from "@/lib/format";
-import type { SpendingRow, ViewId } from "@/lib/types";
+import type { Account, SpendingRow, TransactionRow, ViewId } from "@/lib/types";
 import { monthKey } from "@/lib/format";
 import { isSpendingCategory } from "@/lib/categories";
 import { BottomNav, Sidebar } from "./Sidebar";
-import { Topbar } from "./Topbar";
+import { PageHeader, TopStrip, type AccountOption } from "./Topbar";
 import { Toast, type ToastState } from "./Toast";
 import { TransactionsDrawer, type DrawerTarget } from "./TransactionsDrawer";
 import { Alert } from "./icons";
@@ -22,10 +22,10 @@ import { OverviewView } from "./views/OverviewView";
 import { CategoriesView } from "./views/CategoriesView";
 import { BudgetsView } from "./views/BudgetsView";
 
-const VIEW_META: Record<ViewId, { title: string; subtitle: string }> = {
-  overview: { title: "Overview", subtitle: "Your spending at a glance" },
-  categories: { title: "Categories", subtitle: "Spending broken down by category" },
-  budgets: { title: "Budgets", subtitle: "Set and track your monthly limits" },
+const VIEW_META: Record<ViewId, { title: string }> = {
+  overview: { title: "Overview" },
+  categories: { title: "Categories" },
+  budgets: { title: "Budgets" },
 };
 
 export function Dashboard() {
@@ -38,6 +38,13 @@ export function Dashboard() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [drawer, setDrawer] = useState<DrawerTarget | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const [recent, setRecent] = useState<{
+    key: string;
+    rows: TransactionRow[];
+  } | null>(null);
+  const [overallBudget, setOverallBudget] = useState<number | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accountId, setAccountId] = useState<string | null>(null);
 
   const load = useCallback(async (showSpinner: boolean) => {
     if (showSpinner) setRefreshing(true);
@@ -55,15 +62,36 @@ export function Dashboard() {
     }
   }, []);
 
+  const loadOverall = useCallback(async () => {
+    try {
+      const res = await fetch("/api/budget/overall");
+      if (!res.ok) throw new Error();
+      const data: { budget_limit: unknown } = await res.json();
+      const limit = num(data.budget_limit as never);
+      setOverallBudget(limit > 0 ? limit : null);
+    } catch {}
+  }, []);
+
+  const loadAccounts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/accounts");
+      if (!res.ok) throw new Error();
+      const data: Account[] = await res.json();
+      setAccounts(Array.isArray(data) ? data : []);
+    } catch {}
+  }, []);
+
   // Initial data fetch + persisted theme read — synchronizing with external
   // systems (network + DOM) on mount, which is what effects are for.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time initial data fetch on mount
     load(false);
+    loadOverall();
+    loadAccounts();
     setTheme(
       document.documentElement.classList.contains("dark") ? "dark" : "light"
     );
-  }, [load]);
+  }, [load, loadOverall, loadAccounts]);
 
   const months = useMemo(() => availableMonths(rows ?? []), [rows]);
 
@@ -74,10 +102,31 @@ export function Dashboard() {
     return months.length ? months[months.length - 1] : "";
   }, [month, months]);
 
-  const points = useMemo(() => monthlyTotals(rows ?? []), [rows]);
+  // Rows scoped to the selected account (null = all accounts). Spend/trend/
+  // category views derive from these; months and budget targets stay global.
+  const scopedRows = useMemo(() => {
+    const base = rows ?? [];
+    return accountId ? base.filter((r) => r.account_id === accountId) : base;
+  }, [rows, accountId]);
+
+  const accountMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of accounts) if (a.display_name) m.set(a.account_id, a.display_name);
+    return m;
+  }, [accounts]);
+
+  const accountOptions = useMemo<AccountOption[]>(() => {
+    const ids = new Set<string>();
+    for (const r of rows ?? []) if (r.account_id) ids.add(r.account_id);
+    return [...ids]
+      .map((id) => ({ id, label: accountMap.get(id) ?? `Account …${id.slice(-4)}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [rows, accountMap]);
+
+  const points = useMemo(() => monthlyTotals(scopedRows), [scopedRows]);
   const summaries = useMemo(
-    () => (effectiveMonth ? categorySummaries(rows ?? [], effectiveMonth) : []),
-    [rows, effectiveMonth]
+    () => (effectiveMonth ? categorySummaries(scopedRows, effectiveMonth) : []),
+    [scopedRows, effectiveMonth]
   );
   const budgets = useMemo(() => budgetByCategory(rows ?? []), [rows]);
   const allCategories = useMemo(
@@ -86,7 +135,7 @@ export function Dashboard() {
   );
   const spentByCategory = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of rows ?? []) {
+    for (const r of scopedRows) {
       if (monthKey(r.month) !== effectiveMonth) continue;
       if (!isSpendingCategory(r.primary_category) || !r.primary_category) continue;
       const amt = num(r.total_spending);
@@ -94,17 +143,38 @@ export function Dashboard() {
       m.set(r.primary_category, (m.get(r.primary_category) ?? 0) + amt);
     }
     return m;
-  }, [rows, effectiveMonth]);
+  }, [scopedRows, effectiveMonth]);
 
-  function toggleTheme() {
-    setTheme((t) => {
-      const next = t === "dark" ? "light" : "dark";
-      document.documentElement.classList.toggle("dark", next === "dark");
-      try {
-        localStorage.setItem("fp-theme", next);
-      } catch {}
-      return next;
-    });
+  const recentKey = `${effectiveMonth}__${accountId ?? ""}`;
+
+  useEffect(() => {
+    if (!effectiveMonth) return;
+    let cancelled = false;
+    const url = `/api/transactions/recent?month_year=${effectiveMonth}${
+      accountId ? `&account_id=${encodeURIComponent(accountId)}` : ""
+    }`;
+    fetch(url)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: TransactionRow[]) => {
+        if (!cancelled)
+          setRecent({ key: recentKey, rows: Array.isArray(data) ? data : [] });
+      })
+      .catch(() => {
+        if (!cancelled) setRecent({ key: recentKey, rows: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveMonth, accountId, recentKey]);
+
+  const recentRows = recent && recent.key === recentKey ? recent.rows : null;
+
+  function setThemeMode(next: "light" | "dark") {
+    setTheme(next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    try {
+      localStorage.setItem("fp-theme", next);
+    } catch {}
   }
 
   const handleSave = useCallback(
@@ -138,9 +208,44 @@ export function Dashboard() {
     [load]
   );
 
+  const handleSaveOverall = useCallback(
+    async (limit: number, isNew: boolean) => {
+      try {
+        const res = await fetch("/api/budget/overall", {
+          method: isNew ? "POST" : "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ budget_limit: limit }),
+        });
+        if (!res.ok) throw new Error();
+        setOverallBudget(limit > 0 ? limit : null);
+        await loadOverall();
+        setToast({
+          id: Date.now(),
+          message: "Monthly budget saved",
+          tone: "success",
+        });
+        return true;
+      } catch {
+        setToast({
+          id: Date.now(),
+          message: "Couldn't save monthly budget",
+          tone: "error",
+        });
+        return false;
+      }
+    },
+    [loadOverall]
+  );
+
+  const overallSpent = useMemo(
+    () => [...spentByCategory.values()].reduce((s, v) => s + v, 0),
+    [spentByCategory]
+  );
+
   const openCategory = useCallback(
-    (category: string) => setDrawer({ category, month: effectiveMonth }),
-    [effectiveMonth]
+    (category: string) =>
+      setDrawer({ category, month: effectiveMonth, accountId }),
+    [effectiveMonth, accountId]
   );
 
   const meta = VIEW_META[view];
@@ -148,24 +253,27 @@ export function Dashboard() {
   const empty = !loading && (rows?.length ?? 0) === 0;
 
   return (
-    <div className="flex min-h-dvh bg-bg">
-      <Sidebar active={view} onSelect={setView} />
+    <div className="flex min-h-dvh flex-col bg-bg">
+      <TopStrip theme={theme} onSetTheme={setThemeMode} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar
-          title={meta.title}
-          subtitle={meta.subtitle}
-          months={months}
-          month={effectiveMonth}
-          onMonthChange={setMonth}
-          theme={theme}
-          onToggleTheme={toggleTheme}
-          onRefresh={() => load(true)}
-          refreshing={refreshing}
-        />
+      <div className="flex min-w-0 flex-1">
+        <Sidebar active={view} onSelect={setView} />
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-24 pt-5 lg:px-8 lg:pb-10">
-          <div key={view} className="animate-fade-up">
+        <main className="w-full min-w-0 flex-1 px-5 pb-24 pt-7 lg:px-10 lg:pb-12">
+          <div className="mx-auto w-full max-w-6xl">
+            <PageHeader
+              title={meta.title}
+              months={months}
+              month={effectiveMonth}
+              onMonthChange={setMonth}
+              accountOptions={accountOptions}
+              accountId={accountId}
+              onAccountChange={setAccountId}
+              onRefresh={() => load(true)}
+              refreshing={refreshing}
+            />
+          </div>
+          <div key={view} className="animate-fade-up mx-auto w-full max-w-6xl">
             {loadError && empty ? (
               <Card>
                 <EmptyState
@@ -194,8 +302,10 @@ export function Dashboard() {
                 month={effectiveMonth}
                 summaries={summaries}
                 points={points}
+                recent={recentRows}
+                overallBudget={overallBudget}
                 onOpenCategory={openCategory}
-                onSelectMonth={setMonth}
+                onViewAll={() => setView("categories")}
               />
             ) : view === "categories" ? (
               <CategoriesView
@@ -209,7 +319,10 @@ export function Dashboard() {
                 categories={allCategories}
                 budgets={budgets}
                 spentByCategory={spentByCategory}
+                overallBudget={overallBudget}
+                overallSpent={overallSpent}
                 onSave={handleSave}
+                onSaveOverall={handleSaveOverall}
               />
             )}
           </div>

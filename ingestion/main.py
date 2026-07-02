@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import functions_framework
@@ -9,6 +10,7 @@ from plaid import ApiClient, Configuration
 from google.cloud import bigquery
 from google.cloud import secretmanager
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
+from plaid.model.accounts_get_request import AccountsGetRequest
 
 load_dotenv()
 project_id=os.getenv("PROJECT_ID")
@@ -50,6 +52,10 @@ def handle_webhook(request):
         transactions, cursor = transactions_sync(body['item_id'])
         write_to_bronze(transactions=transactions)
         save_cursor(body['item_id'], cursor)
+        try:
+            sync_accounts()
+        except Exception as e:
+            print(f"Account sync failed (non-fatal): {e}")
         return ("OK", 200)
     else:
         return ("Ignored", 200)
@@ -109,6 +115,64 @@ def write_to_bronze(transactions):
         print("New rows have been added.")
     else:
         print("Encountered errors while inserting rows: {}".format(errors))
+
+def clean_display_name(name, official, mask):
+    base = (official or name or "").replace("�", "").strip()
+    base = re.sub(r"\s*[.…]{2,}\s*\d{3,}$", "", base).strip()
+    base = re.sub(r"\s+", " ", base)
+    if base and base.isupper():
+        base = base.title()
+    if not base:
+        base = "Account"
+    return f"{base} ••{mask}" if mask else base
+
+def sync_accounts():
+    plaid_item_map = json.loads(secret_value_puller(secret_name="plaid-item-map"))
+    client = get_plaid_client()
+    now = datetime.now(timezone.utc).isoformat()
+
+    rows = []
+    for item_id in plaid_item_map:
+        access_token = get_access_token(item_id=item_id)
+        response = client.accounts_get(AccountsGetRequest(access_token=access_token))
+        for a in response.accounts:
+            rows.append({
+                "account_id": a.account_id,
+                "name": a.name,
+                "official_name": a.official_name,
+                "display_name": clean_display_name(a.name, a.official_name, a.mask),
+                "mask": a.mask,
+                "type": str(a.type),
+                "subtype": str(a.subtype),
+                "item_id": item_id,
+                "updated_at": now,
+            })
+
+    print(f"Syncing {len(rows)} accounts to gold.accounts")
+    bq_client = bigquery.Client()
+    table_id = f"{project_id}.gold.accounts"
+    schema = [
+        bigquery.SchemaField("account_id", "STRING"),
+        bigquery.SchemaField("name", "STRING"),
+        bigquery.SchemaField("official_name", "STRING"),
+        bigquery.SchemaField("display_name", "STRING"),
+        bigquery.SchemaField("mask", "STRING"),
+        bigquery.SchemaField("type", "STRING"),
+        bigquery.SchemaField("subtype", "STRING"),
+        bigquery.SchemaField("item_id", "STRING"),
+        bigquery.SchemaField("updated_at", "TIMESTAMP"),
+    ]
+    bq_client.create_table(bigquery.Table(table_id, schema=schema), exists_ok=True)
+    job = bq_client.load_table_from_json(
+        rows,
+        table_id,
+        job_config=bigquery.LoadJobConfig(
+            schema=schema,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        ),
+    )
+    job.result()
+    return rows
 
 def save_cursor(item_id, cursor):
     secret_name = f"plaid-cursor-{item_id}"

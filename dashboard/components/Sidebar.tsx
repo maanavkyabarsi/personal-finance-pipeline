@@ -1,13 +1,13 @@
 "use client";
 
 import type { ViewId } from "@/lib/types";
-import { ChartPie, Layers, Target, Wallet } from "./icons";
+import { Clock, Grid, ListLines } from "./icons";
 import { cx } from "./primitives";
 
-const NAV: { id: ViewId; label: string; icon: typeof ChartPie }[] = [
-  { id: "overview", label: "Overview", icon: ChartPie },
-  { id: "categories", label: "Categories", icon: Layers },
-  { id: "budgets", label: "Budgets", icon: Target },
+const NAV: { id: ViewId; label: string; icon: typeof Grid }[] = [
+  { id: "overview", label: "Overview", icon: Grid },
+  { id: "categories", label: "Categories", icon: ListLines },
+  { id: "budgets", label: "Budgets", icon: Clock },
 ];
 
 function NavItems({
@@ -29,16 +29,16 @@ function NavItems({
             onClick={() => onSelect(id)}
             aria-current={selected ? "page" : undefined}
             className={cx(
-              "flex cursor-pointer items-center gap-3 rounded-xl font-medium transition-colors duration-200",
+              "flex cursor-pointer items-center gap-2.5 rounded-[10px] transition-colors duration-200",
               layout === "rail"
-                ? "w-full px-3 py-2.5 text-sm"
+                ? "w-full px-3 py-2.5 text-[13.5px]"
                 : "flex-1 flex-col gap-1 px-2 py-2 text-xs",
               selected
-                ? "bg-primary-soft text-primary"
-                : "text-muted hover:bg-surface-hover hover:text-text"
+                ? "bg-primary-soft font-semibold text-primary"
+                : "font-medium text-muted hover:bg-surface-hover hover:text-text"
             )}
           >
-            <Icon size={layout === "rail" ? 19 : 22} />
+            <Icon size={layout === "rail" ? 17 : 21} />
             {label}
           </button>
         );
@@ -56,22 +56,13 @@ export function Sidebar({
   onSelect: (v: ViewId) => void;
 }) {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-border bg-surface px-3 py-5 lg:flex">
-      <div className="flex items-center gap-2.5 px-2 pb-6">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-on-primary">
-          <Wallet size={20} />
-        </span>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold text-text">Spending</p>
-          <p className="text-xs text-subtle">Expense analytics</p>
-        </div>
-      </div>
-      <nav className="flex flex-col gap-1" aria-label="Primary">
+    <aside className="sticky top-[65px] hidden h-[calc(100dvh-65px)] w-56 shrink-0 flex-col border-r border-border px-4 py-7 lg:flex">
+      <p className="px-3 pb-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">
+        Menu
+      </p>
+      <nav className="flex flex-col gap-0.5" aria-label="Primary">
         <NavItems active={active} onSelect={onSelect} layout="rail" />
       </nav>
-      <div className="mt-auto px-2 pt-4">
-        <p className="text-xs text-subtle">Personal Finance Pipeline</p>
-      </div>
     </aside>
   );
 }

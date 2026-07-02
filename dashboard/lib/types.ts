@@ -18,6 +18,7 @@ export interface SpendingRow {
 /** Row shape from GET /api/transactions[/detail] (silver.transactions) */
 export interface TransactionRow {
   transaction_name: string | null;
+  merchant_name?: string | null;
   amount: BqNumber;
   transaction_date: BqDate;
   pfc_primary?: string | null;
@@ -38,6 +39,15 @@ export interface MonthPoint {
   key: string;
   label: string;
   spent: number;
+}
+
+/** Row shape from GET /api/accounts (gold.accounts) */
+export interface Account {
+  account_id: string;
+  display_name: string | null;
+  mask: string | null;
+  type: string | null;
+  subtype: string | null;
 }
 
 export type ViewId = "overview" | "categories" | "budgets";

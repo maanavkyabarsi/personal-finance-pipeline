@@ -6,65 +6,71 @@
  * Components only ever reference these tokens, never raw hex.
  * ------------------------------------------------------------------ */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f1f3f7;
-  --surface-hover: #eef1f6;
-  --border: #e4e7ee;
-  --border-strong: #d4d9e3;
+  --bg: #f5eedd;
+  --surface: #fffcf4;
+  --surface-2: #eaf1e9;
+  --surface-hover: #e3eee2;
+  --border: #e9dec4;
+  --border-strong: #ddcfb0;
 
-  --text: #0f172a;
-  --text-muted: #586074;
-  --text-subtle: #8a93a5;
+  --text: #1c221e;
+  --text-muted: #5b6058;
+  --text-subtle: #93968e;
 
-  --primary: #2563eb;
-  --primary-strong: #1d4ed8;
-  --primary-soft: #e8eefe;
-  --on-primary: #ffffff;
+  --primary: #2c5c3f;
+  --primary-strong: #234a32;
+  --primary-soft: #eaf1e9;
+  --on-primary: #f5eedd;
 
-  --accent: #059669; /* under budget / positive */
-  --accent-soft: #d9f3e8;
-  --warning: #c2740a; /* approaching limit */
-  --warning-soft: #fbeccd;
-  --danger: #dc2626; /* over budget */
-  --danger-soft: #fbe0e0;
+  --green-mid: #4c8a63;
+  --green-soft: #cfe3d3;
 
-  --ring: rgba(37, 99, 235, 0.45);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.07);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
+  --accent: #4c8a63;
+  --accent-soft: #eaf1e9;
+  --warning: #b7791f;
+  --warning-soft: #f5e9ce;
+  --danger: #c15b3d;
+  --danger-soft: #f8e7e0;
+
+  --ring: rgba(44, 92, 63, 0.4);
+  --shadow-sm: 0 1px 2px rgba(28, 34, 30, 0.05);
+  --shadow-md: 0 6px 20px rgba(28, 34, 30, 0.07);
+  --shadow-lg: 0 18px 44px rgba(28, 34, 30, 0.12);
 
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0b1120;
-  --surface: #121a2c;
-  --surface-2: #1a2438;
-  --surface-hover: #1e293f;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  --bg: #131714;
+  --surface: #1b211d;
+  --surface-2: #202b23;
+  --surface-hover: #202b23;
+  --border: #2a322c;
+  --border-strong: #384139;
 
-  --text: #f1f5f9;
-  --text-muted: #a3afc6;
-  --text-subtle: #6f7c95;
+  --text: #efeee7;
+  --text-muted: #a6aca3;
+  --text-subtle: #6d746c;
 
-  --primary: #3b82f6;
-  --primary-strong: #60a5fa;
-  --primary-soft: rgba(59, 130, 246, 0.16);
-  --on-primary: #ffffff;
+  --primary: #8fc29e;
+  --primary-strong: #a6d1b2;
+  --primary-soft: #202b23;
+  --on-primary: #131714;
 
-  --accent: #10b981;
-  --accent-soft: rgba(16, 185, 129, 0.16);
-  --warning: #f59e0b;
-  --warning-soft: rgba(245, 158, 11, 0.16);
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.16);
+  --green-mid: #6fa97a;
+  --green-soft: #2a3d2e;
 
-  --ring: rgba(96, 165, 250, 0.5);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --accent: #6fa97a;
+  --accent-soft: #202b23;
+  --warning: #d1a24a;
+  --warning-soft: #302a1c;
+  --danger: #e08a6c;
+  --danger-soft: #3a2620;
+
+  --ring: rgba(143, 194, 158, 0.5);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.55);
 
   color-scheme: dark;
 }
@@ -93,8 +99,12 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
 
-  --font-sans: var(--font-fira-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-fira-code), ui-monospace, monospace;
+  --color-green-mid: var(--green-mid);
+  --color-green-soft: var(--green-soft);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-inter), ui-monospace, monospace;
 }
 
 * {
@@ -113,10 +123,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Tabular figures for all monetary / numeric data (number-tabular rule) */
-.tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+.tnum,
+.num {
+  font-family: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  font-feature-settings: "onum" 1;
+  letter-spacing: 0;
 }
 
 /* Consistent, visible focus ring for keyboard users (focus-states rule) */
@@ -173,6 +184,18 @@ body {
   100% {
     background-position: 200% 0;
   }
+}
+@keyframes fp-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(178, 58, 42, 0.35), 0 8px 22px rgba(178, 58, 42, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(178, 58, 42, 0), 0 12px 30px rgba(178, 58, 42, 0.45);
+  }
+}
+.budget-over-glow {
+  animation: fp-pulse-glow 1.8s ease-in-out infinite;
 }
 
 .animate-fade-up {

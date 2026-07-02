@@ -107,6 +107,81 @@ export const Inbox = (p: IconProps) => (
     <path d="M5 5h14l2 8v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4l2-8Z" />
   </svg>
 );
+export const Leaf = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 14C4 7 10 3 19 3C19 12 15 18 8 18C6.5 18 5 17.5 4 17" />
+    <path d="M4 20C6 17 9 15 12 14" />
+  </svg>
+);
+export const RingMark = ({ size = 22, ...props }: IconProps) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="-3.3 -3.3 46.6 46.6"
+    fill="none"
+    {...props}
+  >
+    <path
+      d="M 18.69,5.06 A 15,15 0 1 1 5.51,16.12"
+      stroke="currentColor"
+      strokeWidth={4.6}
+      strokeLinecap="round"
+    />
+  </svg>
+);
+export const Grid = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+);
+export const ListLines = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 6h16M4 12h16M4 18h10" />
+  </svg>
+);
+export const Clock = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M12 8v4l3 2" />
+  </svg>
+);
+export const Home = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 11 12 4l8 7" />
+    <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" />
+    <path d="M10 20v-5h4v5" />
+  </svg>
+);
+export const Receipt = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21V3Z" />
+    <path d="M9 8h6M9 12h6" />
+  </svg>
+);
+export const Filter = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 5h18l-7 8v6l-4-2v-4L3 5Z" />
+  </svg>
+);
+export const ChevronDown = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+export const Plus = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+export const Crown = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 8l4 4 5-7 5 7 4-4-1.5 11h-15L3 8Z" />
+    <path d="M5 21h14" />
+  </svg>
+);
 
 // ---- category icons ----
 const CategoryGlyphs: Record<IconKey, (p: IconProps) => React.ReactElement> = {

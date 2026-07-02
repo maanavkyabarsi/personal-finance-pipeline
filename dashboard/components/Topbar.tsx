@@ -1,10 +1,147 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { monthLabel } from "@/lib/format";
-import { Moon, Refresh, Sun } from "./icons";
-import { Button, cx } from "./primitives";
+import { Check, ChevronDown, Refresh, RingMark } from "./icons";
+import { cx } from "./primitives";
 
-export function MonthSelect({
+export interface AccountOption {
+  id: string;
+  label: string;
+}
+
+function AccountSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: AccountOption[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = value
+    ? options.find((o) => o.id === value)?.label ?? "Account"
+    : "All accounts";
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex h-9 max-w-[200px] cursor-pointer items-center gap-1.5 rounded-[10px] border border-border px-3 text-[13px] font-medium text-muted transition-colors hover:bg-surface-hover hover:text-text"
+      >
+        <span className="truncate">{current}</span>
+        <ChevronDown size={14} className="shrink-0 text-subtle" />
+      </button>
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-30"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div
+            className="absolute right-0 z-40 mt-1.5 min-w-[224px] rounded-xl border border-border bg-surface p-1 shadow-[var(--shadow-lg)]"
+            role="listbox"
+          >
+            <AccountRow
+              label="All accounts"
+              selected={value === null}
+              onClick={() => {
+                onChange(null);
+                setOpen(false);
+              }}
+            />
+            {options.map((o) => (
+              <AccountRow
+                key={o.id}
+                label={o.label}
+                selected={value === o.id}
+                onClick={() => {
+                  onChange(o.id);
+                  setOpen(false);
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AccountRow({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      role="option"
+      aria-selected={selected}
+      className={cx(
+        "flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition-colors hover:bg-surface-hover",
+        selected ? "font-medium text-text" : "text-muted"
+      )}
+    >
+      <span className="truncate">{label}</span>
+      {selected && <Check size={15} className="shrink-0 text-primary" />}
+    </button>
+  );
+}
+
+export function TopStrip({
+  theme,
+  onSetTheme,
+}: {
+  theme: "light" | "dark";
+  onSetTheme: (t: "light" | "dark") => void;
+}) {
+  return (
+    <div className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/90 px-5 py-4 backdrop-blur lg:px-10">
+      <div className="flex items-center gap-2 text-primary">
+        <RingMark size={22} />
+        <span className="font-serif text-[19px] font-medium tracking-[-0.01em]">
+          cents
+        </span>
+      </div>
+
+      <div className="flex rounded-full border border-border p-0.5">
+        {(["light", "dark"] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => onSetTheme(mode)}
+            aria-pressed={theme === mode}
+            className={cx(
+              "cursor-pointer rounded-full px-3.5 py-1.5 text-xs font-medium capitalize transition-colors",
+              theme === mode
+                ? "bg-primary text-on-primary"
+                : "text-muted hover:text-text"
+            )}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MonthSelect({
   months,
   value,
   onChange,
@@ -19,7 +156,7 @@ export function MonthSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="tnum h-10 cursor-pointer appearance-none rounded-xl border border-border bg-surface pl-3.5 pr-9 text-sm font-medium text-text transition-colors hover:bg-surface-hover focus-visible:border-primary"
+        className="tnum cursor-pointer appearance-none bg-transparent pr-7 text-[22px] font-medium tracking-[-0.01em] text-text focus-visible:outline-none"
       >
         {months.map((m) => (
           <option key={m} value={m}>
@@ -27,87 +164,65 @@ export function MonthSelect({
           </option>
         ))}
       </select>
-      <svg
-        className="pointer-events-none absolute right-3 h-4 w-4 text-muted"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden
-      >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
+      <ChevronDown
+        size={16}
+        className="pointer-events-none absolute right-1 text-muted"
+      />
     </label>
   );
 }
 
-export function ThemeToggle({
-  theme,
-  onToggle,
-}: {
-  theme: "light" | "dark";
-  onToggle: () => void;
-}) {
-  return (
-    <Button
-      variant="secondary"
-      onClick={onToggle}
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      className="w-10 px-0"
-    >
-      {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-    </Button>
-  );
-}
-
-export function Topbar({
+export function PageHeader({
   title,
-  subtitle,
   months,
   month,
   onMonthChange,
-  theme,
-  onToggleTheme,
+  accountOptions,
+  accountId,
+  onAccountChange,
   onRefresh,
   refreshing,
 }: {
   title: string;
-  subtitle: string;
   months: string[];
   month: string;
   onMonthChange: (m: string) => void;
-  theme: "light" | "dark";
-  onToggleTheme: () => void;
+  accountOptions: AccountOption[];
+  accountId: string | null;
+  onAccountChange: (id: string | null) => void;
   onRefresh: () => void;
   refreshing: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 lg:px-8">
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-semibold tracking-tight text-text">
-            {title}
-          </h1>
-          <p className="text-sm text-muted">{subtitle}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {months.length > 0 && (
-            <MonthSelect months={months} value={month} onChange={onMonthChange} />
-          )}
-          <Button
-            variant="secondary"
-            onClick={onRefresh}
-            aria-label="Refresh data"
-            className="w-10 px-0"
-            disabled={refreshing}
-          >
-            <Refresh size={18} className={cx(refreshing && "animate-spin")} />
-          </Button>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-        </div>
+    <div className="mb-6 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col">
+        <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">
+          {title}
+        </span>
+        {months.length > 0 ? (
+          <MonthSelect months={months} value={month} onChange={onMonthChange} />
+        ) : (
+          <span className="text-[22px] font-medium text-text">Overview</span>
+        )}
       </div>
-    </header>
+
+      <div className="flex items-center gap-2">
+        {accountOptions.length > 0 && (
+          <AccountSelect
+            options={accountOptions}
+            value={accountId}
+            onChange={onAccountChange}
+          />
+        )}
+        <button
+          onClick={onRefresh}
+          aria-label="Refresh data"
+          disabled={refreshing}
+          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-[10px] border border-border text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-50"
+        >
+          <Refresh size={16} className={cx(refreshing && "animate-spin")} />
+        </button>
+      </div>
+    </div>
   );
 }

@@ -17,6 +17,7 @@ import { Button, EmptyState, Skeleton } from "./primitives";
 export interface DrawerTarget {
   category: string;
   month: string; // YYYY-MM
+  accountId: string | null;
 }
 
 export function TransactionsDrawer({
@@ -34,14 +35,20 @@ export function TransactionsDrawer({
   );
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const open = target !== null;
-  const key = target ? `${target.category}__${target.month}` : null;
+  const key = target
+    ? `${target.category}__${target.month}__${target.accountId ?? ""}`
+    : null;
 
   useEffect(() => {
     if (!target || !key) return;
     let cancelled = false;
     const url = `/api/transactions?primary_category=${encodeURIComponent(
       target.category
-    )}&month_year=${target.month}`;
+    )}&month_year=${target.month}${
+      target.accountId
+        ? `&account_id=${encodeURIComponent(target.accountId)}`
+        : ""
+    }`;
     fetch(url)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data: TransactionRow[]) => {
